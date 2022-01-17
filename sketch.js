@@ -54,7 +54,8 @@ function Satellite(_pos) {
   }
 
   this.rearThruster = function() {
-    force = this.vel //grab current velocity to get heading
+    force = createVector(1, 1)
+    force.setHeading(this.vel.heading()) //grab current velocity to get heading
     force.setMag(100) // set magnitude
 
     this.applyForce(force)
@@ -75,7 +76,7 @@ function Satellite(_pos) {
 this.move = function() {
     this.pos.x += this.vel.x
     this.pos.y += this.vel.y
-    
+
   }
 
 function keyPressed() {
