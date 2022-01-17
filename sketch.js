@@ -1,5 +1,6 @@
 let earth
 let satellite
+let i = 0
 
 function setup() {
   createCanvas(800, 800)
@@ -10,9 +11,11 @@ function setup() {
 
 function draw() {
   background(180)
+  loop()
   earth.show()
   satellite.show()
   satellite.move()
+  line(0,0,mouseX, mouseY)
 }
 
 function Body(_pos, _vel, _r) {
