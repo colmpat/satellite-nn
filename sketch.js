@@ -40,7 +40,7 @@ function Body(_pos, _vel, _r) {
 
 function Satellite(_pos) {
   this.pos = _pos
-  this.vel = createVector(0,0)
+  this.vel = createVector(0,10)
   this.mass = 100 //our satellites shall be an arbitrary 100 kilos
 
   this.show = function() {
