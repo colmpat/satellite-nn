@@ -1,6 +1,5 @@
 let earth
 let satellite
-let i = 0
 
 function setup() {
   createCanvas(800, 800)
@@ -44,7 +43,6 @@ function Satellite(_pos) {
   this.pos = _pos
   this.vel = createVector(0, -.1)
   this.mass = 100 //our satellites shall be an arbitrary 100 kilos
-  this.i = 0
 
   this.show = function() {
     stroke(0); fill(230);
