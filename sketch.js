@@ -13,9 +13,8 @@ function draw() {
   background(180)
   loop()
   earth.show()
-  satellite.show()
   satellite.move()
-  line(0,0,mouseX, mouseY)
+  satellite.show()
 }
 
 function Body(_pos, _vel, _r) {
@@ -43,12 +42,18 @@ function Body(_pos, _vel, _r) {
 
 function Satellite(_pos) {
   this.pos = _pos
-  this.vel = createVector(0,10)
+  this.vel = createVector(0,0)
   this.mass = 100 //our satellites shall be an arbitrary 100 kilos
 
   this.show = function() {
     stroke(0); fill(230);
     triangle(this.pos.x - 3, this.pos.y + 5, this.pos.x + 3, this.pos.y + 5, this.pos.x, this.pos.y - 5)
+  }
+
+  this.move = function() {
+      this.pos.x += this.vel.x
+      this.pos.y += this.vel.y
+
   }
 
   this.applyForce = function(force) {
@@ -76,11 +81,7 @@ function Satellite(_pos) {
     this.applyForce(force)
   }
 }
-this.move = function() {
-    this.pos.x += this.vel.x
-    this.pos.y += this.vel.y
 
-  }
 
 function keyPressed() {
   if(keyCode === LEFT_ARROW) {
