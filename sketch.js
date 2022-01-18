@@ -1,52 +1,61 @@
 let earth
 let satellite
+let G = 120
 
 function setup() {
-  createCanvas(800, 800)
+  createCanvas(windowWidth, windowHeight)
   angleMode(DEGREES)
-  earth = new Body(createVector(400,400), createVector(0,0), 75)
-  satellite = new Satellite(createVector(earth.pos.x, earth.pos.y - (earth.r + 5)))
+  earth = new Body(createVector(windowWidth / 2, windowHeight / 2), 50)
+  satellite = new Satellite(createVector(0,0))
 }
 
 function draw() {
   background(180)
 
   earth.show()
-  satellite.move()
   satellite.show()
+
+  earth.pull(satellite)
+  satellite.update()
 }
 
-function Body(_pos, _vel, _r) {
+function Body(_pos, _r) {
   this.pos = _pos
-  this.vel = _vel
   this.r = _r
 
-  this.mass = this.r * 9.3635 * pow(10, 20)
-  // a rough ratio of earth's mass relative to radius (hyptohetical kg to km)
-  /*
-    m = r * c
-    Earth:
-    m = 5.922 * 10^24 kg
-    r = 6378 km
-    therefore c = m /r
-      or
-    c = 9.3635 x 10^20
-  */
+  this.mass = _r
 
   this.show = function() {
     noStroke(); fill(40, 122, 171);
     ellipse(this.pos.x, this.pos.y, this.r * 2, this.r * 2)
   }
+
+  this.pull = function(body) {
+    force = (this.pos.copy()).sub(body.pos)
+    dist = this.pos.dist(body.pos)
+    mag = (G * this.mass * body.mass) / (dist * dist)
+
+    force.setMag(mag)
+
+    body.applyForce(force)
+  }
 }
 
 function Satellite(_pos) {
   this.pos = _pos
-  this.vel = createVector(0, -.1)
-  this.mass = 100 //our satellites shall be an arbitrary 100 kilos
+  this.vel = createVector(0, 0)
+  this.mass = 10 //our satellites shall be an arbitrary 10 kilos
+  this.path = []
 
   this.show = function() {
+
+    for (let i = 0; i < this.path.length-2; i++) {
+      stroke(0, i)
+      line(this.path[i].x, this.path[i].y, this.path[i+1].x, this.path[i+1].y,)
+    }
+
     stroke(0); fill(230);
-    theta = this.vel.heading() + 90;
+    theta = this.vel.mag() === 0 ? 0 : (this.vel.heading() + 90)
 
     push()
     translate(this.pos.x, this.pos.y)
@@ -60,9 +69,17 @@ function Satellite(_pos) {
     //triangle(this.pos.x - 3, this.pos.y + 5, this.pos.x + 3, this.pos.y + 5, this.pos.x, this.pos.y - 5)
   }
 
+  this.update = function() {
+    this.move()
+  }
+
   this.move = function() {
       this.pos.x += this.vel.x
       this.pos.y += this.vel.y
+
+      //update path
+      this.path.push(createVector(this.pos.x,this.pos.y))
+      if (this.path.length > 200) this.path.splice(0,1)
 
   }
 
@@ -72,8 +89,8 @@ function Satellite(_pos) {
   }
 
   this.rearThruster = function() {
-    force = this.vel.copy()
-    force.setMag(10)
+    force = this.vel.mag() === 0 ? createVector(0, -1) : this.vel.copy()
+    force.setMag(5)
 
     this.applyForce(force)
   }
@@ -84,13 +101,21 @@ function Satellite(_pos) {
     this.vel.rotate(7.5)
   }
   this.frontThruster = function() {
-    force = this.vel.copy()
-    force.setMag(-10)
+    force = this.vel.mag() === 0 ? createVector(0, -1) : this.vel.copy()
+    force.setMag(-5)
 
     this.applyForce(force)
   }
+  this.touching = function(body) {
+    if(this.pos.dist(body.pos) < body.r + 5) {
+      return true
+    }
+  }
 }
 
+function Orbit(_height) {
+
+}
 
 function keyPressed() {
   if(keyCode === LEFT_ARROW) {
