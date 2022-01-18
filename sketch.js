@@ -5,7 +5,7 @@ let G = 120
 function setup() {
   createCanvas(windowWidth, windowHeight)
   angleMode(DEGREES)
-  earth = new Body(createVector(windowWidth / 2, windowHeight / 2), 50)
+  earth = new Body(createVector(windowWidth / 2, windowHeight / 2), 75)
   satellite = new Satellite(createVector(0,0))
 }
 
