@@ -5,7 +5,7 @@ let G = 120
 function setup() {
   createCanvas(windowWidth, windowHeight)
   angleMode(DEGREES)
-  earth = new Body(createVector(windowWidth / 2, windowHeight / 2), 75)
+  earth = new Body(createVector(windowWidth / 2, windowHeight / 2), 65)
   satellite = new Satellite(createVector(0,0))
 }
 
@@ -23,7 +23,7 @@ function Body(_pos, _r) {
   this.pos = _pos
   this.r = _r
 
-  this.mass = _r
+  this.mass = _r * 1.25
 
   this.show = function() {
     noStroke(); fill(40, 122, 171);
