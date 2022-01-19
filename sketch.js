@@ -7,8 +7,9 @@ let G = 120
 function setup() {
   createCanvas(windowWidth, windowHeight)
   angleMode(DEGREES)
+
   earth = new Earth(createVector(windowWidth / 2, windowHeight / 2), 65)
-  population = new Population(10)
+  population = new Population(50)
   orbit = new Orbit(200)
 
   orbitSlider = createSlider(earth.r + 75, min(windowWidth, windowHeight) / 2 - 20, 150, 5);
@@ -22,11 +23,12 @@ function draw() {
   background(180)
 
   earth.show()
-  population.show()
   orbit.show()
 
-  earth.pull(population)
+  population.show()
   population.update()
+
+  earth.pull(population)
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -47,10 +49,10 @@ function Earth(_pos, _r) {
       body = population.population[i]
 
       force = (this.pos.copy()).sub(body.pos)
-      dist = this.pos.dist(body.pos)
-      mag = (G * this.mass * body.mass) / (dist * dist)
+      r = this.pos.dist(body.pos)
+      magnitude = (G * this.mass * body.mass) / (r * r)
 
-      force.setMag(mag)
+      force.setMag(magnitude)
 
       body.applyForce(force)
     }
@@ -66,6 +68,7 @@ function Satellite(_pos) {
   this.mass = 10 //our satellites shall be an arbitrary 10 kilos
   this.path = []
   this.dead = false
+  this.brain = new Brain(this)
 
   this.show = function() {
 
@@ -110,6 +113,18 @@ function Satellite(_pos) {
   this.applyForce = function(force) {
     this.vel.x += force.x / this.mass
     this.vel.y += force.y / this.mass
+  }
+
+  this.makeMoveByType = function(type) {
+    if(type === 0) {
+      this.rearThruster()
+    } else if(type === 1) {
+      this.frontThruster()
+    } else if(type === 2) {
+      this.leftThruster()
+    } else if(type === 3) {
+      this.rightThruster()
+    }
   }
 
   this.rearThruster = function() {
@@ -164,8 +179,6 @@ function Orbit(_height) {
 //Satellite Brain
 function Brain(_satellite) {
 
-  this.moves = []
-
   this.satellite = _satellite
 
   this.alt = this.satellite.pos.dist(earth.pos) - earth.r
@@ -195,26 +208,6 @@ function Brain(_satellite) {
     rightThruster
   */
 
-  //for now
-  this.randomize = function() {
-    for(let i = 0; i < 150; i++) {
-      choices = [this.satellite.rearThruster, this.satellite.frontThruster, this.satellite.leftThruster, this.satellite.rightThruster, null]
-      rand = random(0, 5)
-      this.moves[i] = choices[rand]
-    }
-  }
-  this.mutate = function() {
-    mutationRate = 0.01
-    for(let i = 0; i < 150; i++) {
-      randomRate = random(1.0)
-      if(randomRate < mutationRate) {
-        choices = [this.satellite.rearThruster, this.satellite.frontThruster, this.satellite.leftThruster, this.satellite.rightThruster, null]
-        rand = random(0, 5)
-        this.moves[i] = choices[rand]
-      }
-    }
-  }
-
 
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -229,22 +222,17 @@ function Population(_size) {
   this.generation = 1
   this.indexOfBestSatellite = 0
 
-  for(let j = 0; j < size; j++) {
-    population[j] = new Satellite(createVector(10, windowHeight / 2))
+  for(let j = 0; j < this.size; j++) {
+    this.population.push(new Satellite(createVector(10, windowHeight / 2)))
   }
 
   this.show = function() {
-    for(let i = 0; i < size; i++) {
-      population[i].show()
-    }
+    this.population.forEach(sat => sat.show())
   }
 
   this.update = function() {
-    for(let i = 0; i < size; i++) {
-      population[i].update()
-    }
+    this.population.forEach(sat => sat.update())
   }
-
 
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
