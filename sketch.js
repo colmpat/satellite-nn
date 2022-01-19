@@ -1,5 +1,6 @@
 let earth
-let satellite
+let population
+let orbit
 let orbitSlider
 let G = 120
 
@@ -7,26 +8,29 @@ function setup() {
   createCanvas(windowWidth, windowHeight)
   angleMode(DEGREES)
   earth = new Earth(createVector(windowWidth / 2, windowHeight / 2), 65)
-  satellite = new Satellite(createVector(10,10))
+  population = new Population(10)
   orbit = new Orbit(200)
-  orbitSlider = createSlider(50, min(windowWidth, windowHeight) - (2 * earth.r), 200, 10)
-  orbitSlider.position(10, windowWidth - 100)
-  orbitSlider.style('width', '90px')
+
+  orbitSlider = createSlider(earth.r + 75, min(windowWidth, windowHeight) / 2 - 20, 150, 5);
+  orbitSlider.position(windowWidth - 100, 10);
+  orbitSlider.style('width', '90px');
 }
 
 function draw() {
+  let r = orbitSlider.value()
+  orbit.r = r
   background(180)
 
-  ORBIT
-
   earth.show()
-  satellite.show()
+  population.show()
   orbit.show()
 
-  earth.pull(satellite)
-  satellite.update()
+  earth.pull(population)
+  population.update()
 }
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+//Earth
 function Earth(_pos, _r) {
   this.pos = _pos
   this.r = _r
@@ -38,17 +42,24 @@ function Earth(_pos, _r) {
     circle(this.pos.x, this.pos.y, this.r * 2)
   }
 
-  this.pull = function(body) {
-    force = (this.pos.copy()).sub(body.pos)
-    dist = this.pos.dist(body.pos)
-    mag = (G * this.mass * body.mass) / (dist * dist)
+  this.pull = function(population) {
+    for(let i = 0; i < population.size; i++) {
+      body = population.population[i]
 
-    force.setMag(mag)
+      force = (this.pos.copy()).sub(body.pos)
+      dist = this.pos.dist(body.pos)
+      mag = (G * this.mass * body.mass) / (dist * dist)
 
-    body.applyForce(force)
+      force.setMag(mag)
+
+      body.applyForce(force)
+    }
+
   }
 }
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+//Satellite
 function Satellite(_pos) {
   this.pos = _pos
   this.vel = createVector(0, 0)
@@ -58,12 +69,14 @@ function Satellite(_pos) {
 
   this.show = function() {
 
+    drawingContext.setLineDash([])
+
     for (let i = 0; i < this.path.length-2; i++) {
-      stroke(0, i)
+      stroke(0, i); strokeWeight((i * 2.5) / (this.path.length - 2));
       line(this.path[i].x, this.path[i].y, this.path[i+1].x, this.path[i+1].y,)
     }
 
-    stroke(0); fill(230);
+    stroke(0); fill(230); strokeWeight(1.5);
     theta = this.vel.mag() === 0 ? 0 : (this.vel.heading() + 90)
 
     push()
@@ -90,7 +103,7 @@ function Satellite(_pos) {
 
       //update path
       this.path.push(createVector(this.pos.x,this.pos.y))
-      if (this.path.length > this.vel.mag() * 25) {this.path.splice(0,1)}
+      if (this.path.length > this.vel.mag() + 150) {this.path.splice(0,1)}
 
   }
 
@@ -108,11 +121,11 @@ function Satellite(_pos) {
   }
   this.leftThruster = function() {
     if(this.dead) {return}
-    this.vel.rotate(-7.5)
+    this.vel.rotate(-5)
   }
   this.rightThruster = function() {
     if(this.dead) {return}
-    this.vel.rotate(7.5)
+    this.vel.rotate(5)
   }
   this.frontThruster = function() {
     if(this.dead) {return}
@@ -133,7 +146,9 @@ function Satellite(_pos) {
     }
   }
 }
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+//Orbit goal
 function Orbit(_height) {
   this.r = _height + earth.r
 
@@ -143,15 +158,106 @@ function Orbit(_height) {
     circle(windowWidth / 2, windowHeight / 2, this.r * 2)
   }
 }
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-function keyPressed() {
-  if(keyCode === LEFT_ARROW) {
-    satellite.leftThruster()
-  } else if(keyCode === RIGHT_ARROW) {
-    satellite.rightThruster()
-  } else if(keyCode === UP_ARROW) {
-    satellite.rearThruster()
-  } else if(keyCode === DOWN_ARROW) {
-    satellite.frontThruster()
+
+//Satellite Brain
+function Brain(_satellite) {
+
+  this.moves = []
+
+  this.satellite = _satellite
+
+  this.alt = this.satellite.pos.dist(earth.pos) - earth.r
+  this.velMag = this.satellite.vel.mag()
+  this.velHeading = this.satellite.vel.heading()
+  this.satellitePositionalDegree = (this.satellite.pos.copy().sub(earth.pos)).heading() //the heading of the vector from earth to the satellite
+
+  //input layer (5 nodes):
+  /*
+    we shall take into consideration:
+
+    height of goal orbit
+    current height above earth
+    current velocity magnitude
+    current heading
+    current heading from center of earth to satellite
+
+  */
+
+  //hidden layer (4 nodes)
+
+  //output layer (4 nodes)
+  /*
+    rearThruster
+    frontThruster
+    leftThruster
+    rightThruster
+  */
+
+  //for now
+  this.randomize = function() {
+    for(let i = 0; i < 150; i++) {
+      choices = [this.satellite.rearThruster, this.satellite.frontThruster, this.satellite.leftThruster, this.satellite.rightThruster, null]
+      rand = random(0, 5)
+      this.moves[i] = choices[rand]
+    }
   }
+  this.mutate = function() {
+    mutationRate = 0.01
+    for(let i = 0; i < 150; i++) {
+      randomRate = random(1.0)
+      if(randomRate < mutationRate) {
+        choices = [this.satellite.rearThruster, this.satellite.frontThruster, this.satellite.leftThruster, this.satellite.rightThruster, null]
+        rand = random(0, 5)
+        this.moves[i] = choices[rand]
+      }
+    }
+  }
+
+
 }
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+//Population
+function Population(_size) {
+
+  this.size = _size
+  this.population = []
+
+  this.generation = 1
+  this.indexOfBestSatellite = 0
+
+  for(let j = 0; j < size; j++) {
+    population[j] = new Satellite(createVector(10, windowHeight / 2))
+  }
+
+  this.show = function() {
+    for(let i = 0; i < size; i++) {
+      population[i].show()
+    }
+  }
+
+  this.update = function() {
+    for(let i = 0; i < size; i++) {
+      population[i].update()
+    }
+  }
+
+
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+//Key input for user controlled satellites
+// function keyPressed() {
+//   if(keyCode === LEFT_ARROW) {
+//     satellite.leftThruster()
+//   } else if(keyCode === RIGHT_ARROW) {
+//     satellite.rightThruster()
+//   } else if(keyCode === UP_ARROW) {
+//     satellite.rearThruster()
+//   } else if(keyCode === DOWN_ARROW) {
+//     satellite.frontThruster()
+//   }
+// }
