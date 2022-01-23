@@ -2,8 +2,9 @@ let earth
 let population
 let orbit
 let orbitSlider
+let testSat
 let frameCount
-let fr = 30
+let fr = 40
 let G = 120
 
 function setup() {
@@ -14,9 +15,9 @@ function setup() {
 
   earth = new Earth(createVector(windowWidth / 2, windowHeight / 2), 65)
   population = new Population(100)
-  orbit = new Orbit(200)
+  orbit = new Orbit(300)
 
-  orbitSlider = createSlider(earth.r + 75, min(windowWidth, windowHeight) / 2 - 20, 150, 5);
+  orbitSlider = createSlider(earth.r + 75, min(windowWidth, windowHeight) / 2 - 20, 300, 5);
   orbitSlider.position(windowWidth - 100, 10);
   orbitSlider.style('width', '90px');
 }
@@ -26,20 +27,20 @@ function draw() {
   let r = orbitSlider.value()
   orbit.r = r
   background(180)
+  text("Generation: " + population.generation, 10, 10)
 
-  if(frameCount % 10 == 0) {
+  if(frameCount % 5 == 0) {
     population.updateDist()
+    population.act()
   }
 
   earth.pull(population)
-  population.act()
 
   earth.show()
   orbit.show()
 
   if(population.generationDone()) {
-    clear()
-    population.calculateFitness()
+    population.calculateFitnesses()
     population.naturalSelection()
     population.mutate()
   } else {
@@ -88,8 +89,10 @@ function Satellite(_pos) {
   this.dead = false
   this.brain = new Brain(this)
   this.fuelUsed = 0
+  this.birthday = Date.now()
+  this.timeAlive = 0
 
-  this.avgDistFromOrbit = Number.MAX_VALUE
+  this.avgDistFromOrbit = 0
   this.distEntries = 0
 
   this.show = function() {
@@ -175,18 +178,26 @@ function Satellite(_pos) {
   this.checkCollision = function() {
     if(this.pos.dist(earth.pos) < earth.r + 5) {
       this.dead = true
+      this.timeAlive = Date.now() - this.birthday
       this.mass = 0 //this negates gravitational pull
     } else if(this.pos.x < 3 || this.pos.y < 3 ||
       this.pos.x > windowWidth - 5 || this.pos.y > windowHeight - 5) {
       this.dead = true
+      this.timeAlive = Date.now() - this.birthday
       this.mass = 0 //this negates gravitational pull
     }
   }
 
   this.updateDist = function() {
     let distFromOrbit = this.pos.dist(earth.pos) - (earth.r + orbit.r)
-    distFromOrbit *= distFromOrbit < 0 ? -1.0 : 1.0
-    this.avgDistFromOrbit = ((this.avgDistFromOrbit * this.distEntries) / this.distEntries++) + distFromOrbit / this.distEntries
+    if(this.distEntries === 0) {
+      this.avgDistFromOrbit += distFromOrbit
+      this.distEntries++
+    } else {
+      distFromOrbit *= distFromOrbit < 0 ? -1.0 : 1.0
+      this.avgDistFromOrbit = ((this.avgDistFromOrbit * this.distEntries) / this.distEntries++) + distFromOrbit / this.distEntries
+    }
+
   }
 
   this.calculateFitness = function() {
@@ -196,8 +207,16 @@ function Satellite(_pos) {
         more time in orbit the better
       2. fuelUsed
         less fuel used the better
+      3. time alive
     */
-    return 1 / ((this.avgDistFromOrbit * this.avgDistFromOrbit) + this.fuelUsed)
+    if(this.timeAlive == 0) {this.timeAlive = Date.now() - this.birthday}
+    return (1.0 / (this.avgDistFromOrbit * this.avgDistFromOrbit)) + (2.0 / (1.0 + this.fuelUsed)) + (sqrt(this.timeAlive / 10.0))
+  }
+
+  this.cloneSatellite = function() {
+    let newSat = new Satellite(createVector(10, windowHeight - 10))
+    newSat.brain = this.brain.clone()
+    return newSat
   }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -230,18 +249,27 @@ function NeuralNetwork(_layers) {
     for(let j = 0; j < nextLayerSize; j++) {
       let layerWeights = []
       for(let k = 0; k < layerSize; k++) {
-        layerWeights.push(Math.random(1))
+        layerWeights.push(Math.random(1.0))
       }
       result.push(layerWeights)
+    }
+    return result
+  })
+  this.biases = _layers.slice(0, -1).map((layersSize, i) => {
+    const nextLayerSize = _layers[i + 1]
+    let result = []
+    for(let j = 0; j < nextLayerSize; j++) {
+      result.push(randomGaussian())
     }
     return result
   })
 
   this.feedForward = function(input) {
     let activations = input
-    for(let layer of this.weights) {
-      activations = layer.map(weights => {
-        return this.relu(this.dot(activations, weights))
+    for(let i = 0; i < this.weights.length; i++) {
+      let layer = this.weights[i]
+      activations = layer.map((weights, j) => {
+        return this.relu(this.dot(activations, weights) + (this.biases[i])[j])
       })
     }
     return activations
@@ -257,6 +285,22 @@ function NeuralNetwork(_layers) {
       res += v1[i] * v2[i]
     }
     return res
+  }
+
+  this.mutate = function() {
+    let mutationRate = 0.02
+    for(let i = 0; i < this.weights.length; i++) {
+      for(let j = 0; j < this.weights[i].length; j++) {
+        let randomNumForWeights = Math.random(1.0)
+        if(randomNumForWeights < mutationRate) {
+          (this.weights[i])[j] = Math.random(1.0)
+        }
+        let randomNumForBiases = Math.random(1.0)
+        if(randomNumForBiases < mutationRate) {
+          (this.biases[i])[j] += randomGaussian() //will produce a number from -0.5 to 0.5
+        }
+      }
+    }
   }
 }
 
@@ -303,7 +347,10 @@ function Brain(_satellite) {
   }
 
   this.clone = function() {
-    return JSON.parse(JSON.stringify(this))
+    newBrain = new Brain(this.satellite)
+    newBrain.nn = new NeuralNetwork([5, 5, 5])
+    newBrain.nn.weights = JSON.parse(JSON.stringify(this.nn.weights))
+    return newBrain
   }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -318,16 +365,17 @@ function Population(_size) {
   this.generation = 1
   this.generationStartTime = Date.now()
 
-  this.fitnessSum
+  this.fitnessSum = 0
   this.indexOfBestSatellite = 0
+  this.bestFitness = 0
 
 
   for(let j = 0; j < this.size; j++) {
-    this.population.push(new Satellite(createVector(10, windowHeight / 2)))
+    this.population.push(new Satellite(createVector(10, windowHeight - 10)))
   }
 
   this.show = function() {
-    this.population.forEach(sat => sat.show())
+    this.population[0].show()
   }
 
   this.update = function() {
@@ -346,7 +394,8 @@ function Population(_size) {
         break
       }
     }
-    return allDead || (Date.now() - this.generationStartTime >= 20000)
+
+    return allDead || (Date.now() - this.generationStartTime >= 10000)
   }
 
   this.act = function() {
@@ -355,6 +404,69 @@ function Population(_size) {
       let move = sat.brain.getMove()
       sat.makeMoveByType(move)
     })
+  }
+
+  this.calculateFitnesses = function() {
+    this.fitnessSum = 0
+    this.population.forEach((sat, index) => {
+      let currentFitness = sat.calculateFitness()
+      this.fitnessSum += currentFitness
+      if(currentFitness > this.bestFitness) {
+        this.bestFitness = currentFitness
+        this.indexOfBestSatellite = index
+      }
+    })
+    console.log("Fitness sum for generation " + this.generation + ": " + this.fitnessSum);
+  }
+
+  this.naturalSelection = function() {
+    let newGen = []
+    newGen.push((this.population[this.indexOfBestSatellite]).cloneSatellite())
+    for(let i = 1; i < this.size; i++) {
+      let newSat = this.getBaby(this.getParent(), this.getParent())
+      newGen.push(newSat)
+    }
+    arrayCopy(newGen, this.population, this.size)
+    this.generation++
+    this.generationStartTime = Date.now()
+  }
+
+  //this function generates a random number and selects a satellite based on its fitness; ie. the higher the satellite's fitness, the more likely it is to be picked
+  this.getParent = function() {
+    let randomNumber = floor(random(this.fitnessSum))
+    let runningTotal = 0
+    for(let i = 0; i < this.size; i++) {
+      runningTotal += (this.population[i]).calculateFitness()
+      if(runningTotal > randomNumber){
+        return (this.population[i]).cloneSatellite()
+      }
+    }
+  }
+
+  this.getBaby = function(parent1, parent2) {
+    //we shall choose each bias randomly from the parents and create genetic crossover from the parents
+    let child = parent1.cloneSatellite()
+    //there shall be a 10% chance of crossover
+    let randomNum = Math.random(1.0)
+    if(randomNum < 0.1) {
+      for(let i = 0; i < child.brain.nn.biases.length / 2; i++) {
+        for(let j = 0; j < child.brain.nn.biases[0].length; j++) {
+          child.brain.nn.biases[i][j] = parent2.brain.nn.biases[i][j]
+        }
+      }
+      for(i = 0; i < child.brain.nn.weights.length / 2; i++) {
+        for(j = 0; j < child.brain.nn.weights[0].length; j++) {
+          child.brain.nn.weights[i][j] = parent2.brain.nn.weights[i][j]
+        }
+      }
+    }
+    return child
+  }
+
+  this.mutate = function() {
+    for(let i = 1; i < this.size; i++) {
+      (this.population[i]).brain.nn.mutate()
+    }
   }
 
 }
