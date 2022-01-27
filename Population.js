@@ -47,8 +47,12 @@ class Population {
         this.indexOfBestSatellite = i;
       }
     });
-    console.log("Best Fitness: " + this.bestFitness);
-    console.log("Fitness sum: " + this.fitnessSum);
+    if(this.generation % 100 === 0) {
+      console.log("Generation: " + this.generation)
+      console.log("Best: " + this.bestFitness);
+      console.log("Avg: " + this.fitnessSum / this.size);
+    }
+
   }
 
   naturalSelection() {
@@ -94,8 +98,8 @@ class Population {
     let child = this.getParent();
     let parent2 = this.getParent();
 
-    child.nn.wh = JSON.parse(JSON.stringify(parent2.nn.wh));
-    child.nn.bh = JSON.parse(JSON.stringify(parent2.nn.bh));
+    child.nn.wh1 = JSON.parse(JSON.stringify(parent2.nn.wh1));
+    child.nn.bh1 = JSON.parse(JSON.stringify(parent2.nn.bh1));
 
     return child;
   }

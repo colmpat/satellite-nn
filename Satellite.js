@@ -1,10 +1,10 @@
 class Satellite {
   constructor() {
-    this.pos = createVector(15, windowHeight - 15);
+    this.pos = createVector(20, windowHeight - 20);
     this.vel = createVector(0, 0);
     this.mass = 10; //our satellites shall be an arbitrary 10 kilos
     this.path = [];
-    this.nn = new NeuralNetwork(5, 7, 5);
+    this.nn = new NeuralNetwork(5, 7, 7, 5);
     this.nn.randomize();
     this.dead = false;
     this.distFromOrbitSum = 0;
@@ -38,8 +38,8 @@ class Satellite {
 
   calculateFitness() {
     let avgDistFromOrbit = this.distFromOrbitSum / this.distFromOrbitEntries;
-    this.fitness = 1.0 / (avgDistFromOrbit * avgDistFromOrbit);
-    this.fitness += this.fitness / (this.fuelUsed + 1.0);
+    this.fitness = 1.0 / (pow(avgDistFromOrbit / 100.0, 2));
+    this.fitness += this.fitness / (1.0 + this.fuelUsed);
     return this.fitness;
   }
 
@@ -50,9 +50,9 @@ class Satellite {
 
     let distanceFromOrbit = this.pos.dist(earth.pos) - earth.r - orbit.r;
     distanceFromOrbit *= distanceFromOrbit < 0 ? -1.0 : 1.0;
+    if(distanceFromOrbit < 10) {this.timeNearOrbit++;}
     this.distFromOrbitSum += distanceFromOrbit;
     this.distFromOrbitEntries++;
-
     this.move();
   }
 
@@ -74,7 +74,9 @@ class Satellite {
   }
 
   act(orbitHeight) {
-    let activations = this.nn.feedForward([orbitHeight, this.pos.x, this.pos.y, this.vel.x, this.vel.y]);
+    let earthToSatVector = (earth.pos.copy()).sub(this.pos);
+
+    let activations = this.nn.feedForward([orbitHeight, earthToSatVector.mag() - earth.r, earthToSatVector.heading(), this.vel.mag(), this.vel.heading()]);
     let move = activations.indexOf(max(activations));
     this.makeMoveByType(move);
   }
@@ -88,7 +90,6 @@ class Satellite {
   applyForce(force) {
     this.vel.x += force.x / this.mass;
     this.vel.y += force.y / this.mass;
-
   }
 
   makeMoveByType(move) {
