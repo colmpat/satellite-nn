@@ -1,16 +1,18 @@
+const FUEL_START = 100;
 class Satellite {
   constructor() {
     this.pos = createVector(20, windowHeight - 20);
     this.vel = createVector(0, 0);
     this.mass = 10; //our satellites shall be an arbitrary 10 kilos
     this.path = [];
-    this.nn = new NeuralNetwork(5, 7, 7, 5);
+    this.nn = new NeuralNetwork(5, 9, 7, 5);
     this.nn.randomize();
     this.dead = false;
     this.distFromOrbitSum = 0;
     this.distFromOrbitEntries = 0;
-    this.fuelUsed = 0;
+    this.fuel = FUEL_START;
     this.fitness = -1;
+    this.reachedOrbit = false;
   }
 
   show() {
@@ -37,20 +39,23 @@ class Satellite {
   }
 
   calculateFitness() {
-    let avgDistFromOrbit = this.distFromOrbitSum / this.distFromOrbitEntries;
-    this.fitness = 1.0 / (pow(avgDistFromOrbit / 100.0, 2));
-    this.fitness += this.fitness / (1.0 + this.fuelUsed);
+    if(this.reachedOrbit) {     //if satellite reached orbit, then fitness is the ammount of fuel used to do so
+      this.fitness = 1000000.0 / pow(FUEL_START - this.fuel, 2);
+    } else {                    //else, fitness is meusured on avg distance from orbit
+      let avgDistFromOrbit = this.distFromOrbitSum / this.distFromOrbitEntries;
+      this.fitness = 1.0 / (pow(avgDistFromOrbit / 100.0, 2));
+    }
     return this.fitness;
   }
 
   update() {
     this.checkCollisions();
+    this.checkOrbitStatus();
 
     if(this.dead) {return;}
 
     let distanceFromOrbit = this.pos.dist(earth.pos) - earth.r - orbit.r;
     distanceFromOrbit *= distanceFromOrbit < 0 ? -1.0 : 1.0;
-    if(distanceFromOrbit < 10) {this.timeNearOrbit++;}
     this.distFromOrbitSum += distanceFromOrbit;
     this.distFromOrbitEntries++;
     this.move();
@@ -73,6 +78,17 @@ class Satellite {
       if (this.path.length > this.vel.mag() + 150) {this.path.splice(0,1);}
   }
 
+  checkOrbitStatus() {
+    let orbitalVelocity = sqrt((G * earth.mass) / (earth.r + orbit.r));
+    let velDif = this.vel.mag() / orbitalVelocity;
+    let posDif = (this.pos.dist(earth.pos) - earth.r) / orbit.r;
+    if(velDif > 0.98 && velDif < 1.02 && posDif > 0.98 && posDif < 1.02) {        //allowing 2% margin of error on vel and pos
+      this.reachedOrbit = true;
+    } else {
+      this.reachedOrbit = false;
+    }
+  }
+
   act(orbitHeight) {
     let earthToSatVector = (earth.pos.copy()).sub(this.pos);
 
@@ -93,10 +109,11 @@ class Satellite {
   }
 
   makeMoveByType(move) {
+    if(this.fuel === 0) { return; }
     if(move >= 0 && move < 4) {
-      this.fuelUsed++;
+      this.fuel--;
     }
-    else {return;}
+    else { return; }
 
     if(move === 0) {this.rearThruster();}
     else if(move === 1) {this.frontThruster();}

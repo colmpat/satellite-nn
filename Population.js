@@ -26,9 +26,10 @@ class Population {
     this.satellites.forEach(sat => sat.update());
   }
 
+
   generationDone() {
     for(let sat in this.satellites) {
-      if(!sat.dead) {return Date.now() - this.generationStartTime > 20000;} //if at least 1 satellite alive, return true if longer than 15 secs.
+      if(!sat.dead) {return Date.now() - this.generationStartTime > 30000;} //if at least 1 satellite alive, return true if longer than 15 secs.
     }
 
     return true; //all satellites are dead
@@ -61,14 +62,14 @@ class Population {
     for(let i = 1; i < this.size; i++) {
       let randomNum = random(1.0);
 
-      if(randomNum < 0.1) { //
+      if(randomNum < 0.15) { //15% chance of kid being result of crossover
         newGen[i] = this.getBaby();
       } else {
         newGen[i] = this.getParent();
       }
 
 
-      //add 10% chance of kid being result of crossover
+
     }
     this.satellites = newGen;
     this.generation++;
