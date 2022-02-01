@@ -1,99 +1,48 @@
 let earth
 let orbit
-let orbitSlider
 let population
 let G = 120
-let csvContent
-let NNSave = {
-  "INPUT_SIZE": 5,
-  "HIDDEN_ONE_SIZE": 9,
-  "HIDDEN_TWO_SIZE": 7,
-  "OUTPUT_SIZE": 5,
-  "wh1": [
-    [1.0122351952273754, -1.434334291345398, -0.01274673149397647, 0.4474633395958792, 1.8018648198077052, -1.8503044696806763, 1.4972901451369665, -1.241596156922976, 1.3129536463722815],
-    [0.9861857182810468, 2.4697820636595806, -0.1872016865147431, -2.1805225746687618, 0.8096356010962412, -2.5426436541834896, -0.25810824921928255, 1.5618658200825304, 1.0048892565064405],
-    [0.46712642905616036, -1.8879166341433793, -0.4665297083516493, -0.1872359616725447, 0.4647302066250657, -1.2640110022947095, 1.5147216937489005, 0.6235867069542548, 1.937184758877175],
-    [-0.4129677771907955, -1.5014348269675377, -1.645428233827511, 0.5189449877011726, -1.049659186380611, 0.5784273420524554, -0.7912423402919421, 1.2505836032007958, 0.6692120341057102],
-    [-0.23957048592932842, 0.7771279270019638, 0.4687872515987259, 0.8922471694960911, -0.3882326862685118, -0.4690472225842683, -1.0219389359586044, 1.919071942518156, 0.5798057747525812]
-  ],
-  "wh2": [
-    [-3.2080930837770802, 0.2470882758268186, -0.8408623377680599, 1.1299136173801816, -0.39285133622443147, -1.2365396567130318, -1.9476669986244246],
-    [-0.1155746213181731, 1.4136085624587058, -2.4467172154917334, -0.8536390651931337, 2.09353586623328, 1.9151764435999363, 0.934571587699259],
-    [1.1346447514349074, 2.4378912668252735, 0.7148270868413201, -0.8028929369123872, -0.6762218371345969, -1.7771006161362297, 0.3165863516573575],
-    [-0.21145265148602077, -1.3290623611923007, 1.1610352178089882, 3.0106393395417164, 0.7015216975465031, -2.8599956558680133, -2.531534993963254],
-    [-0.397103685321231, -0.3553364063915755, -0.479927245705693, -1.4932118948854165, -2.2375404267448697, 0.6532216497627997, 0.44406732131483906],
-    [1.2160810123840273, -0.9429115746365716, 2.2644115828956513, -0.666785141151417, 2.6748307438406336, 0.13588453498001188, -0.63534499449765],
-    [-1.6594019729888991, -1.3050646213437351, -0.8743709212392836, -0.9240301963645754, 1.5155785365850036, 1.992616879667632, -0.009712790615872291],
-    [-0.29508297703291086, 1.5151870511038743, 0.9265612101149243, 0.521376536373297, -0.4040168178824771, -3.6543995569181287, 0.16143955759608203],
-    [1.9481308588928399, 1.414887633371381, 0.6464008816067318, 0.05697116210213757, 1.3153306215675946, -2.5166818279047307, 1.340281350226813]
-  ],
-  "wo": [
-    [-1.1116687999618413, 1.3720302146652283, 0.21022733965215867, 0.9983719853644348, 0.40140129291170257],
-    [-0.8036236246483687, -0.3167183991993663, -2.3143384494569, -1.1117365223681708, 4.4917447168507465],
-    [0.030657655305203424, -0.5962640432041066, -0.574214626664494, 1.0203786862387394, 1.7892613376101938],
-    [-0.6575572843056022, 0.9541565612671035, -0.7915467893309157, -1.3101120117248362, -0.21907520998761876],
-    [1.3898192596502523, -1.898276324568117, -0.1940211507897861, -0.34269766795517376, 0.42325857791353994],
-    [2.2884188070666727, -0.3016339401678529, -0.10985003311518438, 0.035128740722016105, 1.0945558356088085],
-    [0.4859442422320775, 1.800144789534333, -0.025163371563643226, 3.869185834784064, -0.14894439664411402]
-  ],
-  "bh1": [1.4086710101100748, 2.0528138233663125, 0.38182821123266836, -0.8636400156959352, 1.7851286361473084, -0.6934537468418248, 2.1435594043444244, -0.08743496579782162, -1.7182328778649494],
-  "bh2": [-1.1862926046516917, 3.496476347680348, -0.6756501137964142, 0.8450273484549388, 1.292783143211148, 0.10265677111608726, -0.11643685028805507],
-  "bo": [-1.36120307029163, 1.550734420941874, -1.0931751569450672, 2.0654035562024813, -1.267308804603058]
-};
+let fitnessCsvContent
+let neuralNetworkSaves
+let start
+let epochs
 
 function setup() {
-  let frames = 0;
   createCanvas(windowWidth, windowHeight)
   angleMode(DEGREES)
+  start = false
 
   earth = new Earth(createVector(windowWidth / 2, windowHeight / 2), 65)
-  orbit = new Orbit(random(150, min(windowWidth, windowHeight) / 2 - 30 - earth.r))
+  orbit = new Orbit()
   population = new Population(1000)
+  epochs = 1
 
-  population.satellites[0].nn.wh1 = NNSave.wh1;
-  population.satellites[0].nn.wh2 = NNSave.wh2;
-  population.satellites[0].nn.wo = NNSave.wo;
-
-  population.satellites[0].nn.bh1 = NNSave.bh1;
-  population.satellites[0].nn.bh2 = NNSave.bh2;
-  population.satellites[0].nn.bo = NNSave.bo;
-
-  csvContent = "data:text/csv;charset=utf-8,";
+  fitnessCsvContent = "data:text/csv;charset=utf-8,";
+  neuralNetworkSaves = [];
 }
 
 function draw() {
-  frames++;
-  background(180)
+  background(200)
   textSize(16); noStroke(); fill(0);
+  text("Generation: " + population.generation, 15, 20)
+  text("Epoch: " + epochs, 15, 40)
 
-  text("Generation: " + population.generation, 15, 20);
-  text("Best Satellite reached orbit: " + population.satellites[0].reachedOrbit, 15, 50);
-  if(population.generationDone()) {
-    population.calculateFitness()
+  trainPopulation(population)
 
-    //CSV Fitness save for data analysis
-    let row = [population.generation, population.bestFitness, population.fitnessSum / population.size];
-    csvContent += row.join(",") + "\r\n";
-
-    population.naturalSelection()
-    population.mutate()
-
-
-    if(population.generation > 5) {
-      orbit.r += randomGaussian(0, 5);
-      if(orbit.r < 150) {orbit.r = 150;}
-      else if(orbit.r > min(windowWidth, windowHeight) / 2 - 30 - earth.r) { orbit.r = min(windowWidth, windowHeight) / 2 - 30 - earth.r; }
-    }
-  } else {
-    population.act(orbit.r);
-
-    earth.show()
-    orbit.show()
-    population.show()
-
-    earth.pull(population)
-    population.update()
+  if(population.generation > 250) {
+    population.satellites.slice(0,5).forEach(sat => {
+      neuralNetworkSaves.push(JSON.parse(JSON.stringify(sat.nn)))
+    })
+    population = new Population(population.size)
+    orbit = new Orbit()
+    epochs++
   }
+
+  if(epochs > 10) {
+    console.log(JSON.stringify(neuralNetworkSaves));
+    noLoop();
+  }
+
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -125,12 +74,35 @@ function Earth(_pos, _r) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 //Orbit goal
-function Orbit(_height) {
-  this.r = _height
+function Orbit() {
+  this.r = random(150, min(windowWidth, windowHeight) / 2 - 30 - earth.r)
 
   this.show = function() {
-    noFill(); stroke(255); strokeWeight(2);
-    drawingContext.setLineDash([10, 10])
+    noFill(); stroke(255); strokeWeight(3);
+    drawingContext.setLineDash([10, 15])
     circle(windowWidth / 2, windowHeight / 2, (this.r + earth.r) * 2)
+  }
+}
+
+function trainPopulation(population) {
+  if(population.generationDone()) {
+    population.calculateFitness()
+
+    //CSV Fitness save for data analysis
+    let row = [population.generation, population.bestFitness, population.fitnessSum / population.size];
+    fitnessCsvContent += row.join(",") + "\r\n";
+
+    population.naturalSelection()
+    population.mutate()
+
+  } else {
+    population.act(orbit.r);
+
+    earth.show()
+    orbit.show()
+    population.show()
+
+    earth.pull(population)
+    population.update()
   }
 }

@@ -2,7 +2,7 @@ const FUEL_START = 100;
 class Satellite {
   constructor() {
     this.pos = createVector(20, windowHeight - 20);
-    this.vel = createVector(0, 0);
+    this.vel = createVector(sqrt((G * earth.mass) / this.pos.dist(earth.pos)), 0);
     this.mass = 10; //our satellites shall be an arbitrary 10 kilos
     this.path = [];
     this.nn = new NeuralNetwork(5, 9, 7, 5);
@@ -23,7 +23,8 @@ class Satellite {
       line(this.path[i].x, this.path[i].y, this.path[i+1].x, this.path[i+1].y,);
     }
 
-    stroke(0); fill(230); strokeWeight(1.5);
+    let strokeColor = this.reachedOrbit ? color(38, 120, 31) : color(0);
+    stroke(strokeColor); fill(this.reachedOrbit ? strokeColor : 230); strokeWeight(1.5);
     let theta = this.vel.mag() === 0 ? 0 : (this.vel.heading() + 90);
 
     push();
@@ -40,10 +41,10 @@ class Satellite {
 
   calculateFitness() {
     if(this.reachedOrbit) {     //if satellite reached orbit, then fitness is the ammount of fuel used to do so
-      this.fitness = 1000000.0 / pow(FUEL_START - this.fuel, 2);
+      this.fitness = 1000000.0 / (1.0 + pow(FUEL_START - this.fuel, 2));
     } else {                    //else, fitness is meusured on avg distance from orbit
       let avgDistFromOrbit = this.distFromOrbitSum / this.distFromOrbitEntries;
-      this.fitness = 1.0 / (pow(avgDistFromOrbit / 100.0, 2));
+      this.fitness = 1.0 / (pow(avgDistFromOrbit / 10.0, 2));
     }
     return this.fitness;
   }
@@ -80,9 +81,13 @@ class Satellite {
 
   checkOrbitStatus() {
     let orbitalVelocity = sqrt((G * earth.mass) / (earth.r + orbit.r));
+    let earthPull = this.pos.copy().sub(earth.pos);
     let velDif = this.vel.mag() / orbitalVelocity;
     let posDif = (this.pos.dist(earth.pos) - earth.r) / orbit.r;
-    if(velDif > 0.98 && velDif < 1.02 && posDif > 0.98 && posDif < 1.02) {        //allowing 2% margin of error on vel and pos
+    let angleBetweenGravity = this.vel.angleBetween(earthPull);
+    angleBetweenGravity *= angleBetweenGravity < 0 ? -1 : 1;
+
+    if(velDif >= 0.98 && velDif <= 1.02 && posDif >= 0.98 && posDif <= 1.02 && angleBetweenGravity >= 88 && angleBetweenGravity <= 92) {        //allowing 2% margin of error on vel and pos
       this.reachedOrbit = true;
     } else {
       this.reachedOrbit = false;

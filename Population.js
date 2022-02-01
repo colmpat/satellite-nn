@@ -10,8 +10,8 @@ class Population {
     this.generationStartTime = Date.now();
 
     this.fitnessSum = 0;
-    this.bestFitness = -1;
-    this.indexOfBestSatellite = -1;
+    this.bestFitnesses = new Array(5).fill(-1);
+    this.indexOfBestSatellites = new Array(5).fill(-1);
   }
 
   act(orbitHeight) {
@@ -19,7 +19,7 @@ class Population {
   }
 
   show() {
-    this.satellites.slice(0, 10).forEach(sat => sat.show());
+    this.satellites.slice(0, 5).forEach(sat => sat.show());
   }
 
   update() {
@@ -29,7 +29,7 @@ class Population {
 
   generationDone() {
     for(let sat in this.satellites) {
-      if(!sat.dead) {return Date.now() - this.generationStartTime > 30000;} //if at least 1 satellite alive, return true if longer than 15 secs.
+      if(!sat.dead) {return Date.now() - this.generationStartTime > 10000;} //if at least 1 satellite alive, return true if longer than 10 secs.
     }
 
     return true; //all satellites are dead
@@ -37,38 +37,44 @@ class Population {
 
   calculateFitness() {
     this.fitnessSum = 0;
-    this.bestFitness = -1;
-    this.indexOfBestSatellite = -1;
+    this.bestFitness = new Array(5).fill(-1);
+    this.indexOfBestSatellite = new Array(5).fill(-1);
 
     this.satellites.forEach((sat, i) => {
       let currentFitness = sat.calculateFitness();
       this.fitnessSum += currentFitness;
-      if(currentFitness > this.bestFitness) {
-        this.bestFitness = currentFitness;
-        this.indexOfBestSatellite = i;
-      }
+      this.updateTopFive(currentFitness, i);
     });
-    if(this.generation % 100 === 0) {
-      console.log("Generation: " + this.generation)
-      console.log("Best: " + this.bestFitness);
-      console.log("Avg: " + this.fitnessSum / this.size);
+  }
+
+  updateTopFive(fitness, index) {
+    for(let i = 0; i < this.bestFitnesses.length; i++) {
+      if(fitness > this.bestFitnesses[i]) {
+        for(let j = 4; j > i; j--) {        //shift values down
+          this.bestFitnesses[j] = this.bestFitnesses[j - 1];
+          this.indexOfBestSatellites[j] = this.indexOfBestSatellites[j - 1];
+        }
+        this.bestFitnesses[i] = fitness;
+        this.indexOfBestSatellites[i] = index;
+        return;
+      }
     }
 
   }
 
   naturalSelection() {
     let newGen = new Array(this.size);
-    newGen[0] = this.satellites[this.indexOfBestSatellite].clone();
-    for(let i = 1; i < this.size; i++) {
+    for(let i = 0; i < this.size; i++) {
+      if(i < 5) {
+        newGen[i] = (this.satellites[this.indexOfBestSatellites[i]]).clone();
+      }
       let randomNum = random(1.0);
 
-      if(randomNum < 0.15) { //15% chance of kid being result of crossover
+      if(randomNum < 0.50) { //50% chance of kid being result of crossover
         newGen[i] = this.getBaby();
       } else {
         newGen[i] = this.getParent();
       }
-
-
 
     }
     this.satellites = newGen;
@@ -99,13 +105,13 @@ class Population {
     let child = this.getParent();
     let parent2 = this.getParent();
 
-    child.nn.wh1 = JSON.parse(JSON.stringify(parent2.nn.wh1));
-    child.nn.bh1 = JSON.parse(JSON.stringify(parent2.nn.bh1));
+    child.nn.wo = JSON.parse(JSON.stringify(parent2.nn.wo));
+    child.nn.bo = JSON.parse(JSON.stringify(parent2.nn.bo));
 
     return child;
   }
 
   mutate() {
-    this.satellites.slice(1).forEach(sat => sat.nn.mutate());
+    this.satellites.slice(5).forEach(sat => sat.nn.mutate());
   }
 }

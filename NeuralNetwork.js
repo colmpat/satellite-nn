@@ -79,6 +79,8 @@ class NeuralNetwork {
     let hidden1Activations = [];
     let hidden2Activations = [];
     let outputActivations = [];
+
+    //input to h1
     for(let i = 0; i < this.HIDDEN_ONE_SIZE; i++) {
       let sum = 0;
       for(let j = 0; j < this.INPUT_SIZE; j++) {
@@ -87,6 +89,7 @@ class NeuralNetwork {
       sum += this.bh1[i];
       hidden1Activations[i] = this.relu(sum);
     }
+    //h1 to h2
     for(let i = 0; i < this.HIDDEN_TWO_SIZE; i++) {
       let sum = 0;
       for(let j = 0; j < this.HIDDEN_ONE_SIZE; j++) {
@@ -95,7 +98,7 @@ class NeuralNetwork {
       sum += this.bh2[i];
       hidden2Activations[i] = this.relu(sum);
     }
-
+    //h2 to output
     for(let i = 0; i < this.OUTPUT_SIZE; i++) {
       let sum = 0;
       for(let j = 0; j < this.HIDDEN_TWO_SIZE; j++) {
@@ -108,7 +111,7 @@ class NeuralNetwork {
   }
 
   mutate() {
-    let MUTATION_RATE = 0.01;
+    let MUTATION_RATE = 0.025;
 
     //mutate weights
     for(let i = 0; i < this.wh1.length; i++) {
