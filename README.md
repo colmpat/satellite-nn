@@ -7,7 +7,7 @@ The model is currently in training and thus will initialize randomly in this dep
 Individual fitness is calculated in two parts. First, if a satellite has reached orbit, its fitness is a function of how much fuel it has used.
 Secondly, if the satellite did not reach orbit, its fitness is a function of how close it was to orbit on average.
 
-Generation to generation, satellites reproduce relative to their fitness. There is a 50% chance that each member of the new generation is the result of crossover.
+Generation to generation, satellites reproduce relative to their fitness. There is a 10% chance that each member of the new generation is the result of crossover.
 Crossover in this case splits the Neural Network's weights and biases in half.
 
 
@@ -30,4 +30,4 @@ The Neural Network has two hidden layers with 7 nodes and the following inputs a
 
 ## Planned
 When the AI is trained and deemed responsive to orbital height,
-I will be adding user interaction for orbital height and population size.
+I will be adding user interaction for orbital height, population size, and satellite view options.
