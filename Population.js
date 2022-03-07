@@ -12,6 +12,7 @@ class Population {
     this.fitnessSum = 0;
     this.bestFitnesses = new Array(5).fill(-1);
     this.indexOfBestSatellites = new Array(5).fill(-1);
+    this.orbitsCompleted = 0;
   }
 
   act(orbitHeight) {
@@ -19,31 +20,48 @@ class Population {
   }
 
   show() {
-    this.satellites.slice(0, 5).forEach(sat => sat.show());
+    this.satellites.slice(0,5).forEach(sat => sat.show());
   }
 
   update() {
     this.satellites.forEach(sat => sat.update());
   }
 
-
-  generationDone() {
+  orbitDone() {
     for(let sat in this.satellites) {
-      if(!sat.dead) {return Date.now() - this.generationStartTime > 10000;} //if at least 1 satellite alive, return true if longer than 10 secs.
+      if(!sat.dead) {
+        if(Date.now() - this.generationStartTime > 10000) { //if at least 1 satellite alive, return true if longer than 10 secs.
+          this.orbitsCompleted++;
+          return true;
+        } else {
+          return false;
+        }
+      }
     }
+    this.orbitsCompleted++;
+    return true;
+  }
 
-    return true; //all satellites are dead
+  newOrbit() {
+    let newGen = new Array(this.size);
+    this.satellites.forEach((sat, i) => {
+      newGen[i] = sat.clone();
+      newGen[i].totalFitness = sat.totalFitness;
+    });
+    this.satellites = newGen;
+    this.generationStartTime = Date.now();
   }
 
   calculateFitness() {
     this.fitnessSum = 0;
-    this.bestFitness = new Array(5).fill(-1);
+    this.bestFitnesses = new Array(5).fill(-1);
     this.indexOfBestSatellite = new Array(5).fill(-1);
 
     this.satellites.forEach((sat, i) => {
       let currentFitness = sat.calculateFitness();
-      this.fitnessSum += currentFitness;
-      this.updateTopFive(currentFitness, i);
+      this.satellites[i].totalFitness += currentFitness / 10.0;
+      this.fitnessSum += sat.totalFitness;
+      this.updateTopFive(sat.totalFitness, i);
     });
   }
 
@@ -63,6 +81,7 @@ class Population {
   }
 
   naturalSelection() {
+    console.log(this.generation + "," + this.bestFitnesses.map(x=>round(x * 100) / 100) + "," + round((this.fitnessSum / this.size) * 100) / 100);
     let newGen = new Array(this.size);
     for(let i = 0; i < this.size; i++) {
       if(i < 5) {
@@ -70,7 +89,7 @@ class Population {
       }
       let randomNum = random(1.0);
 
-      if(randomNum < 0.50) { //50% chance of kid being result of crossover
+      if(randomNum < 0.10) { //10% chance of kid being result of crossover
         newGen[i] = this.getBaby();
       } else {
         newGen[i] = this.getParent();
@@ -79,14 +98,16 @@ class Population {
     }
     this.satellites = newGen;
     this.generation++;
+    this.orbitsCompleted = 0;
     this.generationStartTime = Date.now();
 
+    // this.putAllSatsInOrbit();
   }
 
   getParent() {
     let randomNum = random(this.fitnessSum);
     let fitnesses = this.satellites.map(satellite => {
-      return satellite.fitness;
+      return satellite.totalFitness;
     });
 
     for(let i = 0; i <= this.size; i++) {
@@ -114,4 +135,32 @@ class Population {
   mutate() {
     this.satellites.slice(5).forEach(sat => sat.nn.mutate());
   }
+
+  putAllSatsInOrbit() {
+    this.satellites.forEach(sat => {
+      sat.vel = createVector(1, 0);
+      sat.vel.setMag(sqrt((G * earth.mass) / (earth.r + orbit.r)));
+      sat.pos = createVector(earth.pos.x, earth.pos.y + earth.r + orbit.r);
+    });
+
+  }
+
+  putAllSatsBelowOrbit() {
+    this.satellites.forEach(sat => {
+      sat.vel = createVector(1, 0);
+      sat.vel.setMag(sqrt((G * earth.mass) / (earth.r + orbit.r)));
+      sat.pos = createVector(earth.pos.x, earth.pos.y + earth.r + orbit.r - 10) ;
+    });
+
+  }
+
+  putAllSatsAboveOrbit() {
+    this.satellites.forEach(sat => {
+      sat.vel = createVector(1, 0);
+      sat.vel.setMag(sqrt((G * earth.mass) / (earth.r + orbit.r)));
+      sat.pos = createVector(earth.pos.x, earth.pos.y + earth.r + orbit.r + 10);
+    });
+
+  }
+
 }

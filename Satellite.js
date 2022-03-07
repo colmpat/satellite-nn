@@ -1,17 +1,21 @@
-const FUEL_START = 100;
 class Satellite {
   constructor() {
     this.pos = createVector(20, windowHeight - 20);
     this.vel = createVector(sqrt((G * earth.mass) / this.pos.dist(earth.pos)), 0);
     this.mass = 10; //our satellites shall be an arbitrary 10 kilos
     this.path = [];
-    this.nn = new NeuralNetwork(5, 9, 7, 5);
+    this.nn = new NeuralNetwork(5, 7, 7, 5);
     this.nn.randomize();
     this.dead = false;
+
     this.distFromOrbitSum = 0;
-    this.distFromOrbitEntries = 0;
-    this.fuel = FUEL_START;
-    this.fitness = -1;
+    this.speedDifSum = 0;
+    this.angleBetweenGravitySum = 0;
+    this.avgsEntries = 0;
+
+    this.fuelUsed = 0;
+    this.fitness = 0;
+    this.totalFitness = 0;
     this.reachedOrbit = false;
   }
 
@@ -41,24 +45,24 @@ class Satellite {
 
   calculateFitness() {
     if(this.reachedOrbit) {     //if satellite reached orbit, then fitness is the ammount of fuel used to do so
-      this.fitness = 1000000.0 / (1.0 + pow(FUEL_START - this.fuel, 2));
-    } else {                    //else, fitness is meusured on avg distance from orbit
-      let avgDistFromOrbit = this.distFromOrbitSum / this.distFromOrbitEntries;
-      this.fitness = 1.0 / (pow(avgDistFromOrbit / 10.0, 2));
+      this.fitness = 1000000000 / (1.0 + pow(this.fuelUsed, 2));
+    } else {                    //else, fitness is meusured on avg distance from orbit and
+      let avgDistFromOrbit = this.distFromOrbitSum / this.avgsEntries;
+      let avgSpeedDif = this.speedDifSum / this.avgsEntries;
+      let avgAngleDif = this.angleBetweenGravitySum / this.avgsEntries;
+      avgAngleDif /= 100.0;
+
+      this.fitness = 1.0 / (pow(avgDistFromOrbit, 2) * avgSpeedDif * avgAngleDif + 0.01);
     }
     return this.fitness;
   }
 
   update() {
     this.checkCollisions();
-    this.checkOrbitStatus();
 
     if(this.dead) {return;}
 
-    let distanceFromOrbit = this.pos.dist(earth.pos) - earth.r - orbit.r;
-    distanceFromOrbit *= distanceFromOrbit < 0 ? -1.0 : 1.0;
-    this.distFromOrbitSum += distanceFromOrbit;
-    this.distFromOrbitEntries++;
+    this.checkOrbitStatus();
     this.move();
   }
 
@@ -83,11 +87,21 @@ class Satellite {
     let orbitalVelocity = sqrt((G * earth.mass) / (earth.r + orbit.r));
     let earthPull = this.pos.copy().sub(earth.pos);
     let velDif = this.vel.mag() / orbitalVelocity;
-    let posDif = (this.pos.dist(earth.pos) - earth.r) / orbit.r;
-    let angleBetweenGravity = this.vel.angleBetween(earthPull);
-    angleBetweenGravity *= angleBetweenGravity < 0 ? -1 : 1;
+    velDif = abs(velDif - 1.0);
 
-    if(velDif >= 0.98 && velDif <= 1.02 && posDif >= 0.98 && posDif <= 1.02 && angleBetweenGravity >= 88 && angleBetweenGravity <= 92) {        //allowing 2% margin of error on vel and pos
+
+    let posDif = (this.pos.dist(earth.pos) - earth.r) / orbit.r;
+    posDif = abs(posDif - 1.0);
+
+    let angleBetweenGravity = abs(this.vel.angleBetween(earthPull));
+    angleBetweenGravity = abs(angleBetweenGravity - 90.0);
+
+    this.distFromOrbitSum += posDif;
+    this.speedDifSum += velDif;
+    this.angleBetweenGravitySum += angleBetweenGravity;
+    this.avgsEntries++;
+
+    if((velDif <= 0.02 && posDif <= 0.02 && angleBetweenGravity <= 1.75) || (velDif <= 0.02 && posDif <= 0.01 && angleBetweenGravity <= 2) || (velDif <= 0.01 && posDif <= 0.02 && angleBetweenGravity <= 2)) {        //allowing 2% margin of error on vel and pos
       this.reachedOrbit = true;
     } else {
       this.reachedOrbit = false;
@@ -114,9 +128,8 @@ class Satellite {
   }
 
   makeMoveByType(move) {
-    if(this.fuel === 0) { return; }
     if(move >= 0 && move < 4) {
-      this.fuel--;
+      this.fuelUsed++;
     }
     else { return; }
 

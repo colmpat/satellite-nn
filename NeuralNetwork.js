@@ -111,7 +111,7 @@ class NeuralNetwork {
   }
 
   mutate() {
-    let MUTATION_RATE = 0.025;
+    let MUTATION_RATE = 0.01;
 
     //mutate weights
     for(let i = 0; i < this.wh1.length; i++) {
@@ -175,5 +175,15 @@ class NeuralNetwork {
     newNN.bo = JSON.parse(JSON.stringify(this.bo));
 
     return newNN;
+  }
+
+  from(nn) {
+    this.wh1 = nn.wh1;
+    this.wh2 = nn.wh2;
+    this.wo = nn.wo;
+
+    this.bh1 = nn.bh1;
+    this.bh2 = nn.bh2;
+    this.bo = nn.bo;
   }
 }

@@ -2,46 +2,39 @@ let earth
 let orbit
 let population
 let G = 120
-let fitnessCsvContent
-let neuralNetworkSaves
-let start
-let epochs
+let button;
+let showDisplay;
+let repo;
 
 function setup() {
   createCanvas(windowWidth, windowHeight)
   angleMode(DEGREES)
-  start = false
 
   earth = new Earth(createVector(windowWidth / 2, windowHeight / 2), 65)
   orbit = new Orbit()
-  population = new Population(1000)
-  epochs = 1
+  population = new Population(5000)
 
-  fitnessCsvContent = "data:text/csv;charset=utf-8,";
-  neuralNetworkSaves = [];
+  repo = new NNRepo();
+  repo.nns.forEach((nn, i) => {
+    population.satellites[i].nn.from(nn);
+  });
+  showDisplay = true;
+
+  button = createButton('toggle display');
+  button.position(windowWidth - 100, 0);
+  button.mousePressed(toggleShow);
+
+  console.log("Gen,Sat[0],Sat[1],Sat[2],Sat[3],Sat[4],Average Fitness");
 }
 
 function draw() {
   background(200)
   textSize(16); noStroke(); fill(0);
   text("Generation: " + population.generation, 15, 20)
-  text("Epoch: " + epochs, 15, 40)
+  text("Orbit: " + (population.orbitsCompleted + 1) + "/10", 15, 45)
 
   trainPopulation(population)
 
-  if(population.generation > 250) {
-    population.satellites.slice(0,5).forEach(sat => {
-      neuralNetworkSaves.push(JSON.parse(JSON.stringify(sat.nn)))
-    })
-    population = new Population(population.size)
-    orbit = new Orbit()
-    epochs++
-  }
-
-  if(epochs > 10) {
-    console.log(JSON.stringify(neuralNetworkSaves));
-    noLoop();
-  }
 
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -85,24 +78,31 @@ function Orbit() {
 }
 
 function trainPopulation(population) {
-  if(population.generationDone()) {
-    population.calculateFitness()
-
-    //CSV Fitness save for data analysis
-    let row = [population.generation, population.bestFitness, population.fitnessSum / population.size];
-    fitnessCsvContent += row.join(",") + "\r\n";
-
-    population.naturalSelection()
-    population.mutate()
+  if(population.orbitDone()) {
+    population.calculateFitness();
+    if(population.orbitsCompleted < 10) {
+      orbit = new Orbit();
+      population.newOrbit();
+    } else {
+      orbit = new Orbit();
+      population.naturalSelection();
+      population.mutate();
+    }
 
   } else {
     population.act(orbit.r);
 
-    earth.show()
-    orbit.show()
-    population.show()
+    if(showDisplay) {
+      earth.show()
+      orbit.show()
+      population.satellites[0].show()
+    }
 
     earth.pull(population)
     population.update()
   }
+}
+
+function toggleShow() {
+  showDisplay = !showDisplay;
 }
