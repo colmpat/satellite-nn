@@ -15,10 +15,12 @@ function setup() {
   population = new Population(5000)
 
   repo = new NNRepo();
-  console.log("There are", repo.nn.length, "saved NNs");
+  let len = 0;
   repo.nns.forEach((nn, i) => {
     population.satellites[i].nn.from(nn);
+    len++
   });
+  console.log("There are", len, "saved NNs");
   showDisplay = true;
 
   button = createButton('toggle display');
