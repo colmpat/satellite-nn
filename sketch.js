@@ -15,6 +15,7 @@ function setup() {
   population = new Population(5000)
 
   repo = new NNRepo();
+  console.log("There are", repo.nn.length, "saved NNs");
   repo.nns.forEach((nn, i) => {
     population.satellites[i].nn.from(nn);
   });
