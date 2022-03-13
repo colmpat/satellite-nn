@@ -52,7 +52,7 @@ class Satellite {
       let avgAngleDif = this.angleBetweenGravitySum / this.avgsEntries;
       avgAngleDif /= 100.0;
 
-      this.fitness = 1.0 / (pow(avgDistFromOrbit, 2) * avgSpeedDif * avgAngleDif + 0.01);
+      this.fitness = 1.0 / (pow(avgDistFromOrbit, 2) * pow(avgSpeedDif, 2) * avgAngleDif * pow(this.fuelUsed, 2) + 0.01);
     }
     return this.fitness;
   }
