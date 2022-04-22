@@ -12,7 +12,7 @@ function setup() {
 
   earth = new Earth(createVector(windowWidth / 2, windowHeight / 2), 65)
   orbit = new Orbit()
-  population = new Population(500)
+  population = new Population(200)
 
   tf.setBackend('cpu');
   showDisplay = true;
