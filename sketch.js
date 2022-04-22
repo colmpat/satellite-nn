@@ -28,7 +28,7 @@ function draw() {
   background(200)
   textSize(16); noStroke(); fill(0);
   text("Generation: " + population.generation, 15, 20)
-  text("Orbit: " + (population.orbitsCompleted) + "/10", 15, 45)
+  text("Orbit: " + (population.orbitsCompleted) + "/5", 15, 45)
 
   trainPopulation(population)
 
@@ -77,13 +77,14 @@ function Orbit() {
 function trainPopulation(population) {
   if(population.orbitDone()) {
     population.calculateFitness();
-    if(population.orbitsCompleted < 10) {
-      population.naturalSelection();
-      population.mutate();
+    if(population.orbitsCompleted < 5) {
+      orbit = new Orbit();
+      population.newOrbit();
       population.orbitsCompleted += 1;
     } else {
       orbit = new Orbit();
-      population.newOrbit();
+      population.naturalSelection();
+      population.mutate();
       population.orbitsCompleted = 1;
       population.generation++;
     }
