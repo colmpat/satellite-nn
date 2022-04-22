@@ -12,15 +12,9 @@ function setup() {
 
   earth = new Earth(createVector(windowWidth / 2, windowHeight / 2), 65)
   orbit = new Orbit()
-  population = new Population(5000)
+  population = new Population(500)
 
-  repo = new NNRepo();
-  let len = 0;
-  repo.nns.forEach((nn, i) => {
-    population.satellites[i].nn.from(nn);
-    len++
-  });
-  console.log("There are", len, "saved NNs");
+  tf.setBackend('cpu');
   showDisplay = true;
 
   button = createButton('toggle display');
@@ -34,7 +28,7 @@ function draw() {
   background(200)
   textSize(16); noStroke(); fill(0);
   text("Generation: " + population.generation, 15, 20)
-  text("Orbit: " + (population.orbitsCompleted + 1) + "/10", 15, 45)
+  text("Orbit: " + (population.orbitsCompleted) + "/10", 15, 45)
 
   trainPopulation(population)
 
@@ -84,12 +78,14 @@ function trainPopulation(population) {
   if(population.orbitDone()) {
     population.calculateFitness();
     if(population.orbitsCompleted < 10) {
-      orbit = new Orbit();
-      population.newOrbit();
-    } else {
-      orbit = new Orbit();
       population.naturalSelection();
       population.mutate();
+      population.orbitsCompleted += 1;
+    } else {
+      orbit = new Orbit();
+      population.newOrbit();
+      population.orbitsCompleted = 1;
+      population.generation++;
     }
 
   } else {
@@ -98,7 +94,7 @@ function trainPopulation(population) {
     if(showDisplay) {
       earth.show()
       orbit.show()
-      population.satellites[0].show()
+      population.show()
     }
 
     earth.pull(population)

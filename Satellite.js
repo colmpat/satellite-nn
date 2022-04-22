@@ -4,8 +4,7 @@ class Satellite {
     this.vel = createVector(sqrt((G * earth.mass) / this.pos.dist(earth.pos)), 0);
     this.mass = 10; //our satellites shall be an arbitrary 10 kilos
     this.path = [];
-    this.nn = new NeuralNetwork(5, 7, 7, 5);
-    this.nn.randomize();
+    this.nn = new NeuralNetwork(5, 8, 5);
     this.dead = false;
 
     this.distFromOrbitSum = 0;
@@ -112,13 +111,20 @@ class Satellite {
   act(orbitHeight) {
     let earthToSatVector = (earth.pos.copy()).sub(this.pos);
 
-    let activations = this.nn.feedForward([orbitHeight, earthToSatVector.mag() - earth.r, earthToSatVector.heading(), this.vel.mag(), this.vel.heading()]);
-    let move = activations.indexOf(max(activations));
+    let activations = this.nn.predict([orbitHeight, earthToSatVector.mag() - earth.r, earthToSatVector.heading(), this.vel.mag(), this.vel.heading()]);
+    let max = activations[0];
+    for(let i = 1; i < activations.length; i++) {
+      if(activations[i] > max) {
+        max = activations[i];
+      }
+    }
+    let move = activations.indexOf(max);
     this.makeMoveByType(move);
   }
 
   clone() {
     let newSat = new Satellite();
+    newSat.nn.dispose();
     newSat.nn = this.nn.clone();
     return newSat;
   }
