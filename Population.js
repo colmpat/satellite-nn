@@ -53,10 +53,9 @@ class Population {
 
   calculateFitness() {
     this.fitnessSum = 0;
-
     this.satellites.forEach((sat, i) => {
       let currentFitness = sat.calculateFitness();
-      this.satellites[i].totalFitness += currentFitness / 10.0;
+      this.satellites[i].totalFitness += currentFitness / 5.0;
       this.fitnessSum += sat.totalFitness;
     });
   }

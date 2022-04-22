@@ -54,7 +54,7 @@ class Satellite {
       let avgSpeedDif = this.stats.speeds.reduce(reducer, 0) / n;
       let avgAngleDif = this.stats.headings.reduce(reducer, 0) / n;
 
-      this.fitness = 1.0 / ((avgAltDif * 0.4) + (avgSpeedDif * 0.3) + (avgAngleDif * 0.3) + 0.01);
+      this.fitness = 1.0 / ((avgAltDif * 0.5) + (avgSpeedDif * 0.25) + (avgAngleDif * 0.25) + 0.01);
     }
     return this.fitness;
   }
