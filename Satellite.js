@@ -4,7 +4,7 @@ class Satellite {
     this.vel = createVector(sqrt((G * earth.mass) / this.pos.dist(earth.pos)), 0);
     this.mass = 10; //our satellites shall be an arbitrary 10 kilos
     this.path = [];
-    this.nn = new NeuralNetwork(5, 8, 5);
+    this.nn = new NeuralNetwork(3, 10, 5);
     this.dead = false;
 
     this.stats = {
@@ -17,9 +17,12 @@ class Satellite {
     this.fitness = 0;
     this.totalFitness = 0;
     this.reachedOrbit = false;
+    this.activations = [0,0,0,0,0]
   }
 
   show() {
+    let earthPull = this.pos.copy().sub(earth.pos);
+    let aToEarth = this.vel.angleBetween(earthPull) % 360;
     drawingContext.setLineDash([]);
 
     for (let i = 0; i < this.path.length-2; i++) {
@@ -40,7 +43,7 @@ class Satellite {
     vertex(3, 5);
     endShape();
     pop();
-    //triangle(this.pos.x - 3, this.pos.y + 5, this.pos.x + 3, this.pos.y + 5, this.pos.x, this.pos.y - 5)
+    // text(aToEarth, this.pos.x, this.pos.y)
   }
 
   calculateFitness() {
@@ -54,7 +57,7 @@ class Satellite {
       let avgSpeedDif = this.stats.speeds.reduce(reducer, 0) / n;
       let avgAngleDif = this.stats.headings.reduce(reducer, 0) / n;
 
-      this.fitness = 1.0 / ((avgAltDif * 0.5) + (avgSpeedDif * 0.25) + (avgAngleDif * 0.25) + 0.01);
+      this.fitness = 1.0 / ((avgAltDif * 0.1) + (avgSpeedDif * 0.3) + (avgAngleDif * 0.6) + 0.01);
     }
     return this.fitness;
   }
@@ -88,8 +91,8 @@ class Satellite {
   checkOrbitStatus() {
     let orbitalVelocity = sqrt((G * earth.mass) / (earth.r + orbit.r));
     let earthPull = this.pos.copy().sub(earth.pos);
-    let a = this.pos.dist(earth.pos);
     let aToEarth = this.vel.angleBetween(earthPull) % 360;
+    let a = this.pos.dist(earth.pos);
     
     let velDif = this.vel.mag() / orbitalVelocity;
     velDif = abs(velDif - 1.0);
@@ -112,9 +115,36 @@ class Satellite {
   }
 
   act(orbitHeight) {
-    let earthToSatVector = (earth.pos.copy()).sub(this.pos);
+    if(this.dead) return;
+    let orbitalVelocity = sqrt((G * earth.mass) / (earth.r + orbit.r));
+    let earthPull = this.pos.copy().sub(earth.pos);
+    let a = this.pos.dist(earth.pos);
+    let aToEarth = (this.vel.angleBetween(earthPull) + 360) % 360;
+    
+    let velDif = this.vel.mag() / orbitalVelocity;
+    velDif -= 1;
 
-    let activations = this.nn.predict([orbitHeight, earthToSatVector.mag() - earth.r, earthToSatVector.heading(), this.vel.mag(), this.vel.heading()]);
+    let posDif = a / orbit.r;
+    posDif -= 1;
+
+    let angleDif = aToEarth > 180 ? (aToEarth / 270) : (aToEarth / 90);
+    angleDif -= 1;
+
+    let activations = this.nn.predict([
+      velDif,
+      posDif,
+      angleDif
+    ])
+    this.activations = [...activations];
+    
+
+    // let activations = this.nn.predict([
+    //     orbitHeight, 
+    //     earthToSatVector.mag() - earth.r, 
+    //     earthToSatVector.heading(), 
+    //     this.vel.mag(), 
+    //     this.vel.heading()
+    //   ]);
     let max = activations[0];
     for(let i = 1; i < activations.length; i++) {
       if(activations[i] > max) {

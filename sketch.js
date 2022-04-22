@@ -12,7 +12,7 @@ function setup() {
 
   earth = new Earth(createVector(windowWidth / 2, windowHeight / 2), 65)
   orbit = new Orbit()
-  population = new Population(300)
+  population = new Population(500)
 
   tf.setBackend('cpu');
   showDisplay = true;
@@ -20,16 +20,16 @@ function setup() {
   button = createButton('toggle display');
   button.position(windowWidth - 100, 0);
   button.mousePressed(toggleShow);
-
-  console.log("Gen,Sat[0],Sat[1],Sat[2],Sat[3],Sat[4],Average Fitness");
 }
 
 function draw() {
   background(200)
   textSize(16); noStroke(); fill(0);
   text("Generation: " + population.generation, 15, 20)
-  text("Orbit: " + (population.orbitsCompleted) + "/5", 15, 45)
-
+  text("Orbit: " + (population.orbitsCompleted) + "/50", 15, 45)
+  let i = population.satellites.findIndex(d => !d.dead)
+  text("Sat " + i + ": activations: " + (population.satellites[i].dead ? 'dead' : (population.satellites[i].activations.map(a => round(a * 100) + '%'))), 15, 70)
+  
   trainPopulation(population)
 
 
@@ -77,9 +77,9 @@ function Orbit() {
 function trainPopulation(population) {
   if(population.orbitDone()) {
     population.calculateFitness();
-    if(population.orbitsCompleted < 5) {
-      orbit = new Orbit();
-      population.newOrbit();
+    if(population.orbitsCompleted < 50) {
+      // population.newOrbit();
+      population.naturalSelection();
       population.orbitsCompleted += 1;
     } else {
       orbit = new Orbit();
